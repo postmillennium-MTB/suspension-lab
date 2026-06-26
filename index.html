@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTB Front Suspension Lab</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Spline+Sans+Mono:wght@400;500;600;700&display=swap');
+  :root{
+    --bg:#0d1014; --panel:#151a20; --panel-2:#1b222a; --line:#2a323d;
+    --ink:#e8edf2; --ink-dim:#9aa7b4; --ink-faint:#5d6b78;
+    --coil:#ff6a3d; --air2:#36c6ff; --mtd:#b388ff; --sled:#f4d35e;
+    --grid:#222a33; --good:#39d98a; --warn:#ffb454; --bad:#ff5d6c;
+    --accent:#36c6ff; --shadow:0 4px 18px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:'Archivo',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  body{background:
+    radial-gradient(700px 350px at 15% -10%,#1a2230 0%,transparent 60%),
+    radial-gradient(500px 250px at 100% 0%,#14202a 0%,transparent 55%),
+    var(--bg);min-height:100vh;}
+
+  /* ── header ── */
+  header{padding:12px 18px 10px;border-bottom:1px solid var(--line);
+    position:relative;overflow:hidden;}
+  header::before{content:"";position:absolute;inset:0;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:34px 34px;opacity:.18;
+    mask-image:linear-gradient(180deg,#000,transparent);}
+  .eyebrow{position:relative;font-family:'Spline Sans Mono',monospace;
+    font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent);}
+  h1{position:relative;margin:4px 0 3px;font-size:clamp(18px,3vw,28px);
+    font-weight:900;letter-spacing:-.02em;line-height:1.1;}
+  h1 .thin{color:var(--ink-dim);font-weight:500;}
+  .sub{position:relative;color:var(--ink-dim);font-size:11.5px;margin:0;line-height:1.45;}
+
+  /* ── layout ── */
+  .wrap{max-width:1060px;margin:0 auto;padding:12px 14px;}
+  .grid{display:grid;grid-template-columns:252px 1fr;gap:12px;align-items:start;}
+  @media(max-width:860px){.grid{grid-template-columns:1fr;}}
+
+  /* ── controls ── */
+  .controls{display:flex;flex-direction:column;gap:8px;}
+  .card{background:linear-gradient(180deg,var(--panel),#11161c);
+    border:1px solid var(--line);border-radius:11px;padding:12px;box-shadow:var(--shadow);}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+
+  /* ── tabs ── */
+  .tab-bar{display:flex;gap:2px;margin-bottom:10px;background:var(--panel-2);
+    border:1px solid var(--line);border-radius:7px;padding:3px;}
+  .tab-btn{flex:1;border:none;background:transparent;color:var(--ink-faint);
+    font-family:'Spline Sans Mono',monospace;font-size:9.5px;font-weight:700;
+    padding:5px 1px;border-radius:5px;cursor:pointer;transition:.1s;
+    letter-spacing:.03em;text-transform:uppercase;position:relative;}
+  .tab-btn.active{background:var(--panel);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.4);}
+  .tab-btn:hover:not(.active){color:var(--ink-dim);}
+  .mtd-dot{width:5px;height:5px;border-radius:50%;background:var(--mtd);
+    display:none;position:absolute;top:3px;right:3px;}
+  .tab-btn.mtd-active .mtd-dot{display:block;}
+  .tab-panel{animation:fadein .1s ease;}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+
+  /* ── fields ── */
+  .field{margin-bottom:10px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:11px;color:var(--ink);font-weight:600;margin-bottom:4px;}
+  .field label .val{font-family:'Spline Sans Mono',monospace;color:var(--accent);
+    font-size:11px;font-weight:600;}
+  .field label .unit{color:var(--ink-faint);font-weight:500;font-size:9.5px;}
+  .hint{font-size:10px;color:var(--ink-faint);margin:4px 0 8px;line-height:1.4;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:6px;
+    background:var(--line);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;
+    border-radius:50%;background:var(--accent);border:2px solid #0d1014;
+    box-shadow:0 0 0 1px var(--accent);cursor:pointer;transition:transform .1s;}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;
+    background:var(--accent);border:2px solid #0d1014;cursor:pointer;}
+
+  /* ── segmented controls ── */
+  .seg{display:flex;gap:3px;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:7px;padding:3px;}
+  .seg button{flex:1;border:none;background:transparent;color:var(--ink-dim);
+    font-family:'Spline Sans Mono',monospace;font-size:9.5px;font-weight:600;
+    padding:6px 3px;border-radius:5px;cursor:pointer;transition:.1s;letter-spacing:.02em;}
+  .seg button.active{background:var(--accent);color:#08222e;box-shadow:0 2px 6px rgba(54,198,255,.3);}
+  .seg button:hover:not(.active){color:var(--ink);}
+
+  /* ── toggle switch ── */
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .switch{position:relative;width:40px;height:22px;flex:none;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider-sw{position:absolute;cursor:pointer;inset:0;background:var(--line);
+    border-radius:20px;transition:.2s;}
+  .slider-sw:before{content:"";position:absolute;height:14px;width:14px;left:4px;bottom:4px;
+    background:#c9d3dc;border-radius:50%;transition:.2s;}
+  .switch input:checked + .slider-sw{background:var(--mtd);}
+  .switch input:checked + .slider-sw:before{transform:translateX(18px);background:#fff;}
+
+  /* ── MTD panel ── */
+  .mtd-panel{padding-top:8px;border-top:1px dashed var(--line);
+    opacity:.35;pointer-events:none;transition:opacity .2s;}
+  .mtd-panel.on{opacity:1;pointer-events:auto;}
+  .pill{display:inline-block;font-family:'Spline Sans Mono',monospace;font-size:9px;
+    padding:1px 5px;border-radius:20px;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--ink-dim);margin-left:4px;}
+
+  /* ── spring-mode bar (top) ── */
+  .mode-bar{padding:10px 12px;}
+  .mode-label{font-family:'Spline Sans Mono',monospace;font-size:9.5px;
+    color:var(--ink-faint);font-weight:700;letter-spacing:.08em;margin-bottom:5px;}
+
+  /* ── reset button ── */
+  .btn-reset{width:100%;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--ink-faint);font-family:'Spline Sans Mono',monospace;font-size:10.5px;font-weight:600;
+    padding:8px;border-radius:8px;cursor:pointer;transition:.1s;letter-spacing:.04em;}
+  .btn-reset:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ── stage (charts) ── */
+  .stage{display:flex;flex-direction:column;gap:10px;}
+  .diagram-card{background:linear-gradient(180deg,#10151b,#0c1015);}
+  .schematic{width:100%;display:block;}
+
+  .chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+  .chart-hdr .t{font-size:11.5px;font-weight:700;}
+  .chart-hdr .d{font-size:10px;color:var(--ink-faint);margin-top:1px;}
+  .fig-tag{font-family:'Spline Sans Mono',monospace;font-size:9.5px;color:var(--accent);
+    border:1px solid var(--line);border-radius:5px;padding:2px 7px;white-space:nowrap;flex-shrink:0;}
+  canvas{width:100%;display:block;}
+  .chart-card{padding:10px 10px 3px;}
+
+  /* ── legend row ── */
+  .legend{display:flex;flex-wrap:wrap;gap:9px;font-family:'Spline Sans Mono',monospace;
+    font-size:10px;color:var(--ink-dim);align-items:center;padding:8px 12px;}
+  .lk{width:14px;height:3px;border-radius:3px;display:inline-block;}
+  .lk.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 8px);}
+
+  /* ── metrics ── */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  @media(max-width:560px){.metrics{grid-template-columns:repeat(2,1fr);}}
+  .metric{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px;}
+  .metric .lab{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);
+    font-weight:600;margin-bottom:6px;line-height:1.3;min-height:22px;}
+  .metric .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;}
+  .metric .row:last-child{margin-bottom:0;}
+  .metric .nm{font-family:'Spline Sans Mono',monospace;font-size:9.5px;display:flex;align-items:center;gap:4px;}
+  .metric .num{font-family:'Spline Sans Mono',monospace;font-size:13px;font-weight:700;}
+
+  /* ── verdict ── */
+  .verdict{font-family:'Spline Sans Mono',monospace;font-size:11px;padding:10px 13px;
+    border-radius:9px;border:1px solid var(--line);background:var(--panel);line-height:1.5;}
+  .verdict .tag{font-weight:700;}
+
+  /* ── equations (collapsed) ── */
+  details{margin-top:0;}
+  summary{cursor:pointer;font-family:'Spline Sans Mono',monospace;font-size:10px;
+    color:var(--ink-faint);padding:7px 11px;background:var(--panel);
+    border:1px solid var(--line);border-radius:7px;list-style:none;transition:.1s;}
+  summary:hover{color:var(--ink-dim);}
+  summary::before{content:'▶  ';}
+  details[open] summary::before{content:'▼  ';}
+  .eqbox{font-family:'Spline Sans Mono',monospace;font-size:10.5px;color:var(--ink-dim);
+    background:#0b0f14;border:1px solid var(--line);border-top:none;
+    border-radius:0 0 7px 7px;padding:10px 12px;line-height:1.65;overflow-x:auto;white-space:nowrap;}
+  .eqbox .c{color:var(--coil);}.eqbox .a{color:var(--air2);}.eqbox .m{color:var(--mtd);}.eqbox .v{color:var(--sled);}
+
+  footer{max-width:1060px;margin:0 auto;padding:6px 14px 22px;color:var(--ink-faint);
+    font-size:10px;line-height:1.55;font-family:'Spline Sans Mono',monospace;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Interactive Suspension Dynamics Laboratory</div>
+  <h1>MTB Front Fork <span class="thin">Quarter-Car Impact Model</span></h1>
+  <p class="sub">Drop-impact simulator — <b style="color:var(--coil)">coil</b> vs <b style="color:var(--air2)">air</b> spring, optional <b style="color:var(--mtd)">tuned mass damper</b>. After Schoeneck, Sadauckas &amp; Nagurka (BMD 2023).</p>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- ═══════════════ CONTROLS ═══════════════ -->
+    <div class="controls">
+
+      <!-- Spring mode (always visible) -->
+      <div class="card mode-bar">
+        <div class="mode-label">SPRING MODE</div>
+        <div class="seg" id="springMode">
+          <button data-v="both" class="active">COIL + AIR</button>
+          <button data-v="coil">COIL</button>
+          <button data-v="air">AIR</button>
+        </div>
+      </div>
+
+      <!-- Tabbed parameter panels -->
+      <div class="card" style="padding:10px;">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="rider">RIDER</button>
+          <button class="tab-btn" data-tab="coil">COIL</button>
+          <button class="tab-btn" data-tab="air">AIR</button>
+          <button class="tab-btn" data-tab="terrain">TERRAIN</button>
+          <button class="tab-btn" id="tabMtdBtn" data-tab="mtd">MTD<span class="mtd-dot"></span></button>
+        </div>
+
+        <!-- ─ Rider & Geometry ─ -->
+        <div class="tab-panel" id="tab-rider">
+          <div class="field">
+            <label>Rider Mass <span><span class="val" id="vRider">72.6</span><span class="unit"> kg (160 lb)</span></span></label>
+            <input type="range" id="rider" min="45" max="130" step="0.5" value="72.6">
+          </div>
+          <div class="field">
+            <label>Front Weight <span><span class="val" id="vFront">42</span><span class="unit"> %</span></span></label>
+            <input type="range" id="frontPct" min="30" max="60" step="1" value="42">
+          </div>
+          <div class="field">
+            <label>Unsprung Mass <span><span class="val" id="vUns">2.5</span><span class="unit"> kg</span></span></label>
+            <input type="range" id="unsprung" min="1.2" max="5" step="0.1" value="2.5">
+          </div>
+          <div class="field">
+            <label>Fork Travel <span><span class="val" id="vTravel">160</span><span class="unit"> mm</span></span></label>
+            <input type="range" id="travel" min="80" max="200" step="5" value="160">
+          </div>
+        </div>
+
+        <!-- ─ Coil ─ -->
+        <div class="tab-panel" id="tab-coil" style="display:none;">
+          <div class="field">
+            <label>Spring Rate <span><span class="val" id="vCoil">7.9</span><span class="unit"> N/mm (45 lb/in)</span></span></label>
+            <input type="range" id="coilRate" min="3" max="16" step="0.1" value="7.9">
+          </div>
+          <div class="field">
+            <label>Fork Damping <span><span class="val" id="vCdamp">1400</span><span class="unit"> N·s/m</span></span></label>
+            <input type="range" id="cDamp" min="200" max="4500" step="50" value="1400">
+          </div>
+        </div>
+
+        <!-- ─ Air ─ -->
+        <div class="tab-panel" id="tab-air" style="display:none;">
+          <div class="field">
+            <label>Air Pressure <span><span class="val" id="vPsi">75</span><span class="unit"> psi</span></span></label>
+            <input type="range" id="psi" min="40" max="160" step="1" value="75">
+          </div>
+          <div class="field">
+            <label>Volume Spacers <span><span class="val" id="vProg">2</span><span class="unit"> tokens</span></span></label>
+            <input type="range" id="prog" min="0" max="6" step="1" value="2">
+          </div>
+          <p class="hint" style="margin-bottom:6px;">Click-adjustable damping — LSC governs slow inputs (braking, small bumps); HSC governs fast hits and drops.</p>
+          <div class="field">
+            <label>LSC — Low Speed <span><span class="val" id="vLsc">5</span><span class="unit"> clicks</span></span></label>
+            <input type="range" id="lsc" min="0" max="10" step="1" value="5">
+          </div>
+          <div class="field">
+            <label>HSC — High Speed <span><span class="val" id="vHsc">5</span><span class="unit"> clicks</span></span></label>
+            <input type="range" id="hsc" min="0" max="10" step="1" value="5">
+          </div>
+        </div>
+
+        <!-- ─ Terrain ─ -->
+        <div class="tab-panel" id="tab-terrain" style="display:none;">
+          <div class="seg" id="terrain" style="margin-bottom:9px;">
+            <button data-v="0">SMOOTH</button>
+            <button data-v="1" class="active">TRAIL</button>
+            <button data-v="2">ROCK</button>
+            <button data-v="3">HUCK</button>
+          </div>
+          <div class="field">
+            <label>Drop Height <span><span class="val" id="vDrop">300</span><span class="unit"> mm</span></span></label>
+            <input type="range" id="drop" min="50" max="1200" step="10" value="300">
+          </div>
+          <div class="field">
+            <label>Variability <span><span class="val" id="vRough">35</span><span class="unit"> %</span></span></label>
+            <input type="range" id="rough" min="0" max="100" step="1" value="35">
+          </div>
+          <div class="field">
+            <label>Tire Damping <span><span class="val" id="vCt">140</span><span class="unit"> N·s/m</span></span></label>
+            <input type="range" id="ct" min="20" max="900" step="10" value="140">
+          </div>
+          <!-- Rock-specific sub-controls -->
+          <div id="rockinessRow" style="display:none;margin-top:8px;">
+            <div class="field">
+              <label>Rock Size <span><span class="val" id="vRockiness">3</span><span class="unit"> / 5</span></span></label>
+              <input type="range" id="rockiness" min="1" max="5" step="1" value="3">
+            </div>
+            <div style="display:flex;justify-content:space-between;font-family:'Spline Sans Mono',monospace;font-size:9px;color:var(--ink-faint);margin:-4px 0 8px;">
+              <span>Gravel</span><span>Loose</span><span>Mixed</span><span>Chunky</span><span>Boulders</span>
+            </div>
+          </div>
+          <!-- Huck-specific sub-controls -->
+          <div id="huckFtRow" style="display:none;margin-top:8px;">
+            <div class="field">
+              <label>Huck Height <span><span class="val" id="vHuckFt">2.0</span><span class="unit"> ft</span></span></label>
+              <input type="range" id="huckFt" min="1" max="10" step="0.5" value="2">
+            </div>
+          </div>
+          <p class="hint">Low tire damping → underdamped tire-hop resonance → where the MTD has most to work with.</p>
+        </div>
+
+        <!-- ─ MTD ─ -->
+        <div class="tab-panel" id="tab-mtd" style="display:none;">
+          <div class="toggle-row">
+            <span style="font-size:12px;color:var(--ink);font-weight:700;">Enable MTD</span>
+            <label class="switch"><input type="checkbox" id="mtdOn"><span class="slider-sw"></span></label>
+          </div>
+          <div class="mtd-panel" id="mtdPanel">
+            <p class="hint" style="margin-top:0;">Auxiliary mass on spring+damper attached to unsprung mass. Targets the tire-hop resonance.<span class="pill" id="autoTag">DEN HARTOG AUTO</span></p>
+            <div class="field">
+              <label>Absorber Mass µ <span><span class="val" id="vMu">8</span><span class="unit"> % of unsprung</span></span></label>
+              <input type="range" id="mu" min="2" max="25" step="1" value="8">
+            </div>
+            <div class="toggle-row">
+              <span style="font-size:10.5px;color:var(--ink-dim);font-weight:600;">Auto-tune (Den Hartog optimal)</span>
+              <label class="switch"><input type="checkbox" id="autoTune" checked><span class="slider-sw"></span></label>
+            </div>
+            <div class="field">
+              <label>Tuning Freq <span><span class="val" id="vFmtd">—</span><span class="unit"> Hz</span></span></label>
+              <input type="range" id="fmtd" min="3" max="40" step="0.5" value="14">
+            </div>
+            <div class="field">
+              <label>Damping ζ <span><span class="val" id="vZmtd">—</span></span></label>
+              <input type="range" id="zmtd" min="0.02" max="0.5" step="0.01" value="0.16">
+            </div>
+          </div>
+        </div>
+      </div><!-- /tabbed card -->
+
+      <button class="btn-reset" id="reset">↺  RESET TO DEFAULTS</button>
+    </div><!-- /controls -->
+
+    <!-- ═══════════════ STAGE ═══════════════ -->
+    <div class="stage">
+
+      <!-- Schematic -->
+      <div class="card diagram-card" style="padding:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:11.5px;font-weight:700;">Quarter-Car Schematic</span>
+          <div class="legend" style="padding:0;gap:8px;">
+            <span style="color:var(--coil)"><span class="lk" style="background:var(--coil)"></span>Coil</span>
+            <span style="color:var(--air2)"><span class="lk" style="background:var(--air2)"></span>Air</span>
+            <span style="color:var(--mtd)"><span class="lk dash" style="color:var(--mtd)"></span>MTD</span>
+            <span style="color:var(--sled)"><span class="lk" style="background:var(--sled)"></span>Wheel</span>
+            <span style="color:var(--ink-faint);font-family:'Spline Sans Mono',monospace;font-size:9.5px;">t=0 → first contact</span>
+          </div>
+        </div>
+        <svg class="schematic" id="schematic" viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+
+      <!-- Displacement time-histories -->
+      <div class="card chart-card">
+        <div class="chart-hdr">
+          <div>
+            <div class="t">Displacement Time-Histories</div>
+            <div class="d">Axle, fork &amp; tire travel — the study's core comparison plot. Overshoot, ring-down and sag all respond to parameter changes.</div>
+          </div>
+          <span class="fig-tag">≈ STUDY Fig. 9</span>
+        </div>
+        <canvas id="cDisp" height="340"></canvas>
+      </div>
+
+      <!-- Metrics tiles -->
+      <div class="metrics" id="metrics"></div>
+
+      <!-- Acceleration -->
+      <div class="card chart-card">
+        <div class="chart-hdr">
+          <div>
+            <div class="t">Cockpit Acceleration <span style="color:var(--ink-faint);font-weight:400;">(rider comfort)</span></div>
+            <div class="d">Vertical g felt at the handlebar. Lower peaks &amp; faster settling = less harsh.</div>
+          </div>
+          <span class="fig-tag">COMFORT</span>
+        </div>
+        <canvas id="cAcc" height="230"></canvas>
+      </div>
+
+      <!-- Spring curve -->
+      <div class="card chart-card">
+        <div class="chart-hdr">
+          <div>
+            <div class="t">Fork Spring Force vs Travel <span style="color:var(--ink-faint);font-weight:400;">(linearity)</span></div>
+            <div class="d">Coil is linear; air ramps up progressively. Volume spacers steepen the ramp.</div>
+          </div>
+          <span class="fig-tag">SPRING RATE</span>
+        </div>
+        <canvas id="cSpring" height="210"></canvas>
+      </div>
+
+      <!-- Verdict -->
+      <div class="verdict" id="verdict"></div>
+
+      <!-- MTD Transfer Function (shown when MTD on) -->
+      <div class="card chart-card" id="tmdCard" style="display:none;">
+        <div class="chart-hdr">
+          <div>
+            <div class="t">MTD Transfer Function <span style="color:var(--ink-faint);font-weight:400;">(why &amp; when it works)</span></div>
+            <div class="d">Steady-state amplification swept across frequency. The absorber splits one tall resonant peak into two shorter ones — the classic Den Hartog result.</div>
+          </div>
+          <span class="fig-tag">MTD THEORY</span>
+        </div>
+        <canvas id="cTmd" height="240"></canvas>
+      </div>
+
+      <!-- Equations (collapsible) -->
+      <details>
+        <summary>Governing Equations</summary>
+        <div class="eqbox">
+          m<sub>s</sub> ẍ<sub>s</sub> = m<sub>s</sub>g − F<sub>fork</sub>(<span class="c">coil</span>/<span class="a">air</span>) − c<sub>f</sub>(ẋ<sub>s</sub>−ẋ<sub>u</sub>)<br>
+          m<sub>u</sub> ẍ<sub>u</sub> = m<sub>u</sub>g + F<sub>fork</sub> − F<sub>tire</sub> <span class="v">[contact only]</span> − F<sub>abs</sub> <span class="m">[if MTD]</span><br>
+          F<sub>tire</sub> = k<sub>t</sub>·δ + c<sub>t</sub>·δ̇ &nbsp; δ=(x<sub>u</sub>−x<sub>road</sub>)&gt;0 &nbsp; <span class="v">(Kelvin–Voigt)</span><br>
+          <span class="c">F<sub>coil</sub> = k<sub>c</sub>·s</span> &nbsp;|&nbsp; <span class="a">F<sub>air</sub> = p₀A[(L/(L−s))^n − 1] &nbsp; (A calibrated once at 75 psi/28% sag ref)</span><br>
+          <span class="m">f<sub>opt</sub>=f<sub>hop</sub>/(1+µ) &nbsp; ζ<sub>opt</sub>=√(3µ/(8(1+µ)³)) &nbsp; · &nbsp; Integrated RK4, dt=80 µs</span>
+        </div>
+      </details>
+
+    </div><!-- /stage -->
+  </div>
+</div>
+
+<footer>
+  Educational simulator. Parameters reproduce the <i>behavior and methodology</i> of the cited research, not exact identified constants. Defaults: rider 72.6 kg · unsprung 2.5 kg · air 75 psi · coil 7.9 N/mm · travel 160 mm.
+  Sources: Schoeneck, Sadauckas &amp; Nagurka (BMD 2023, doi:10.59490/65037d87d2719ed4543447a7) · Sadauckas et al. (VSD 2024) · air-fork biomechanics (T&amp;F 2016) · Den Hartog fixed-point theory.
+</footer>
+
+
+<script>
+
+"use strict";
+
+/* ---------- tab switching ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>{p.style.display='none';});
+    btn.classList.add('active');
+    const p=document.getElementById('tab-'+btn.dataset.tab);
+    if(p) p.style.display='';
+  });
+});
+
+/* ============================================================
+   MTB FRONT SUSPENSION — QUARTER-CAR IMPACT SIMULATOR
+   2-DOF (sprung + unsprung) Kelvin-Voigt fork & tire,
+   integrated through impact / loss-of-contact (RK4),
+   optional 3rd DOF tuned mass damper.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const G = 9.81;
+
+/* ---------- state ---------- */
+const S = {
+  springMode:'both', terrain:1,
+  rider:72.6, frontPct:42, unsprung:2.5, travel:160,
+  coilRate:7.9, cDamp:1400,
+  psi:75, prog:2, aDamp:1400, lsc:5, hsc:5,
+  drop:300, rough:35, ct:140, rockiness:3, huckFt:2,
+  mtdOn:false, mu:8, autoTune:true, fmtd:14, zmtd:0.16
+};
+const DEFAULTS = JSON.parse(JSON.stringify(S));
+
+/* ---------- bind sliders ---------- */
+function bindRange(id, key, fmt){
+  const el=$(id), out=$('v'+id.charAt(0).toUpperCase()+id.slice(1));
+  // out id mapping handled explicitly below instead
+}
+const rangeMap = [
+  ['rider','rider','vRider', v=>v.toFixed(1)],
+  ['frontPct','frontPct','vFront', v=>v.toFixed(0)],
+  ['unsprung','unsprung','vUns', v=>v.toFixed(1)],
+  ['travel','travel','vTravel', v=>v.toFixed(0)],
+  ['coilRate','coilRate','vCoil', v=>v.toFixed(1)],
+  ['cDamp','cDamp','vCdamp', v=>v.toFixed(0)],
+  ['psi','psi','vPsi', v=>v.toFixed(0)],
+  ['prog','prog','vProg', v=>v.toFixed(0)],
+  ['lsc','lsc','vLsc', v=>v.toFixed(0)],
+  ['hsc','hsc','vHsc', v=>v.toFixed(0)],
+  ['drop','drop','vDrop', v=>v.toFixed(0)],
+  ['rough','rough','vRough', v=>v.toFixed(0)],
+  ['ct','ct','vCt', v=>v.toFixed(0)],
+  ['rockiness','rockiness','vRockiness', v=>v.toFixed(0)],
+  ['mu','mu','vMu', v=>v.toFixed(0)],
+  ['fmtd','fmtd','vFmtd', v=>v.toFixed(1)],
+  ['zmtd','zmtd','vZmtd', v=>v.toFixed(2)],
+];
+rangeMap.forEach(([id,key,outId,fmt])=>{
+  const el=$(id), out=$(outId);
+  el.value = S[key];
+  out.textContent = fmt(S[key]);
+  el.addEventListener('input',()=>{
+    S[key]=parseFloat(el.value); out.textContent=fmt(S[key]); recompute();
+  });
+});
+
+/* segmented controls */
+function segGroup(id, key, isNum){
+  const wrap=$(id);
+  wrap.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      wrap.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      S[key]= isNum? parseInt(b.dataset.v): b.dataset.v;
+      recompute();
+    });
+  });
+}
+segGroup('springMode','springMode',false);
+segGroup('terrain','terrain',true);
+
+/* terrain-specific sub-controls */
+function updateTerrainUI(){
+  const t=S.terrain;
+  const rr=$('rockinessRow'), hr=$('huckFtRow');
+  if(rr) rr.style.display=(t===2)?'':'none';
+  if(hr) hr.style.display=(t===3)?'':'none';
+  if(t===3){
+    const mm=Math.min(1200,Math.round(S.huckFt*304.8));
+    S.drop=mm;
+    const de=$('drop'); if(de) de.value=mm;
+    const vd=$('vDrop'); if(vd) vd.textContent=mm;
+  }
+}
+$('terrain').querySelectorAll('button').forEach(b=>b.addEventListener('click',updateTerrainUI));
+const hftEl=$('huckFt');
+if(hftEl) hftEl.addEventListener('input',e=>{
+  S.huckFt=parseFloat(e.target.value);
+  const vhf=$('vHuckFt'); if(vhf) vhf.textContent=S.huckFt.toFixed(1);
+  updateTerrainUI(); recompute();
+});
+
+/* toggles */
+$('mtdOn').addEventListener('change',e=>{
+  S.mtdOn=e.target.checked;
+  $('mtdPanel').classList.toggle('on',S.mtdOn);
+  const tb=$('tabMtdBtn');if(tb)tb.classList.toggle('mtd-active',S.mtdOn);
+  recompute();
+});
+$('autoTune').addEventListener('change',e=>{
+  S.autoTune=e.target.checked; recompute();
+});
+$('reset').addEventListener('click',()=>{
+  Object.assign(S,JSON.parse(JSON.stringify(DEFAULTS)));
+  rangeMap.forEach(([id,key,outId,fmt])=>{ $(id).value=S[key]; $(outId).textContent=fmt(S[key]); });
+  ['springMode','terrain'].forEach((gid,i)=>{
+    const key=gid, val=S[key];
+    $(gid).querySelectorAll('button').forEach(b=>{
+      b.classList.toggle('active', (gid==='terrain'? parseInt(b.dataset.v)===val : b.dataset.v===val));
+    });
+  });
+  $('mtdOn').checked=S.mtdOn; $('mtdPanel').classList.toggle('on',S.mtdOn);
+  const tb=$('tabMtdBtn');if(tb)tb.classList.remove('mtd-active');
+  $('autoTune').checked=S.autoTune;
+  const hf=$('huckFt');if(hf){hf.value=S.huckFt;const vh=$('vHuckFt');if(vh)vh.textContent=S.huckFt.toFixed(1);}
+  updateTerrainUI();
+  recompute();
+});
+
+/* ---------- terrain presets ---------- */
+// [base drop mm, roughness amp scale, chatter freq Hz, surface decay]
+/* Terrain presets. rAmp scales undulation; freq is dominant tone (Hz);
+   chat sets how fast the post-impact bump train decays; sus is the
+   sustained (steady-state) fraction that keeps exciting the tire. */
+const TERRAIN = {
+  0:{name:'Smooth', rAmp:0.12, freq:6,  chat:1.5, sus:0.00},
+  1:{name:'Trail',  rAmp:0.40, freq:12, chat:1.0, sus:0.10},
+  2:{name:'Rock',   rAmp:0.55, freq:34, chat:0.5, sus:0.55},
+  3:{name:'Huck',   rAmp:0.60, freq:9,  chat:1.2, sus:0.05},
+};
+
+/* Air-spring piston area calibrated ONCE at a fixed reference operating
+   point (75 psi, 0 tokens, 160 mm travel, 32 kg sprung, 28% target sag).
+   Calibrating once — rather than per run — is what lets pressure genuinely
+   change ride height instead of the model silently re-solving to a fixed sag. */
+const A_AIR = (function(){
+  const Patm=101325, n=1.05, Ls=0.160*1.30, p0=75*6894.76+Patm;
+  const sT=0.28*0.160, r=Math.pow(Ls/(Ls-sT), n);
+  return (32*G)/(p0*r - Patm);   // ~0.000451 m^2
+})();
+
+/* ============================================================
+   PHYSICS — quarter-car impact model, one spring type
+   Coordinate convention: x measured DOWNWARD from the t=0
+   ground-contact datum. Fork compression s = xs - xu.
+   ============================================================ */
+function simulate(springType){
+  // ---- masses ----
+  const mFront = S.rider*(S.frontPct/100) + 4.0;   // front share + bar/frame (~4kg)
+  const mu = S.unsprung;                            // unsprung (lower leg + wheel)
+  const ms = Math.max(mFront - mu, 5);              // sprung on the front
+  const travel_m = S.travel/1000;
+
+  // ---- fork spring ----
+  const kCoil = S.coilRate*1000;                    // N/mm -> N/m
+  const Patm = 101325;
+  const nPoly = 1.05 + S.prog*0.11;                 // volume tokens raise progression
+  const Lstroke = travel_m*1.30;                    // effective air-chamber length
+  const p0 = S.psi*6894.76 + Patm;                  // absolute chamber pressure (Pa)
+
+  function forkSpring(s){
+    s = Math.max(0, s);
+    let Fs;
+    if(springType==='coil'){
+      Fs = kCoil*s;                                 // linear coil
+    } else {
+      const Lc = Math.max(Lstroke - s, travel_m*0.04);
+      Fs = (p0*Math.pow(Lstroke/Lc, nPoly) - Patm)*A_AIR;  // progressive air
+    }
+    const o = s - travel_m;                         // progressive bottom-out bumper
+    if(o>0){ Fs += 150000*o + 8e6*o*o; }
+    return Fs;
+  }
+  /* Velocity-sensitive air damping — LSC for low shaft speeds, HSC for fast hits */
+  const cLscEff = 200 + (S.lsc/10)*1300;  // 200–1500 N·s/m
+  const cHscEff = 200 + (S.hsc/10)*1300;
+  const vSplit  = 0.25;                    // m/s transition knee
+  function forkDampFn(vRel){
+    if(springType==='coil') return S.cDamp;
+    const v=Math.abs(vRel), b=Math.min(1,(v/vSplit)*(v/vSplit));
+    return cLscEff*(1-b)+cHscEff*b;
+  }
+
+  // ---- tire (Kelvin-Voigt, contact only) ----
+  const kt = 120000 + (S.psi-40)*120;               // radial stiffness (N/m)
+  const ct = S.ct;                                  // radial damping (N·s/m)
+
+  // ---- tuned mass damper, attached to the unsprung mass ----
+  const useMTD = S.mtdOn;
+  const ma = useMTD ? mu*(S.mu/100) : 0;
+  const fHop = Math.sqrt(kt/mu)/(2*Math.PI);        // free tire-hop resonance
+  const fu   = Math.sqrt(kt/(ms+mu))/(2*Math.PI);   // coupled body-on-tire resonance
+  let fa, za;
+  if(S.autoTune){
+    const muR=S.mu/100;
+    fa = fHop/(1+muR);                              // Den Hartog optimal frequency
+    za = Math.sqrt(3*muR/(8*Math.pow(1+muR,3)));    // Den Hartog optimal damping ratio
+    const fEl=$('fmtd'), zEl=$('zmtd');
+    if(fEl){ $('vFmtd').textContent=fa.toFixed(1); fEl.value=Math.min(45,Math.max(3,fa)); }
+    if(zEl){ $('vZmtd').textContent=za.toFixed(2); zEl.value=Math.min(0.5,Math.max(0.02,za)); }
+  } else {
+    fa = S.fmtd; za = S.zmtd;
+  }
+  const wa = 2*Math.PI*fa, ka = ma*wa*wa, ca = 2*za*ma*wa;
+
+  // ---- static sag: fork spring carries ms*g at rest ----
+  let sSag=0;
+  { let lo=0, hi=travel_m;
+    for(let i=0;i<70;i++){ const m=(lo+hi)/2; if(forkSpring(m)<ms*G) lo=m; else hi=m; }
+    sSag=(lo+hi)/2; }
+
+  // ---- impact initial conditions ----
+  const T_base = TERRAIN[S.terrain];
+  const T = (S.terrain===2)?(()=>{
+    const r=(S.rockiness-1)/4;          // 0=gravel  1=boulders
+    return {name:T_base.name,
+            rAmp:T_base.rAmp*(0.50+1.50*r),
+            freq:T_base.freq*(0.70+0.70*r),
+            sus :T_base.sus *(0.40+1.60*r),
+            chat:T_base.chat*(1.20-0.40*r)};
+  })():T_base;
+  const vI = Math.sqrt(2*G*S.drop/1000);            // downward speed at first contact
+  // state = [xs, vs, xu, vu, xa, va]; at t=0 tire just touches (xu=0), fork at sag
+  let st = [sSag, vI, 0, vI, 0, vI];
+
+  const rAmp  = T.rAmp*(S.rough/100)*0.014;         // surface undulation amplitude (m)
+  const rFreq = T.freq*(0.9 + S.rough/400);
+
+  function road(t){
+    if(t<=0) return 0;
+    const decay   = Math.exp(-t*1.2*T.chat);        // bump train fades
+    const sustain = T.sus*(S.rough/100);            // steady chatter that keeps exciting
+    return rAmp*( Math.sin(2*Math.PI*rFreq*t)*0.6
+                + Math.sin(2*Math.PI*rFreq*1.3*t+1.1)*0.4 )*(decay+sustain);
+  }
+
+  function deriv(s, t){
+    const [xs,vs,xu,vu,xa,va]=s;
+    const sFork = xs - xu;                          // fork compression
+    const Fs = forkSpring(sFork);
+    const Fc = forkDampFn(vs-vu)*(vs-vu);
+    const Ffork = Fs + Fc;                          // +ve pushes sprung up, unsprung down
+
+    const xr = road(t);
+    const delta = xu - xr;                          // tire compression
+    let Ftire = 0;
+    if(delta>0){ Ftire = kt*delta + ct*vu; if(Ftire<0) Ftire=0; }
+
+    let Fabs=0, axa=0;
+    if(useMTD && ma>0){
+      const sa = xa - xu;
+      Fabs = ka*sa + ca*(va - vu);
+      axa  = (-ka*sa - ca*(va - vu))/ma + G;
+    }
+
+    const axs = (ms*G - Ffork)/ms;                  // sprung: gravity down, fork up
+    const axu = (mu*G + Ffork - Ftire - Fabs)/mu;   // unsprung: gravity+fork down, tire+TMD up
+    return [vs, axs, vu, axu, va, axa];
+  }
+
+  // ---- RK4 integration ----
+  const dt=0.00008, tEnd=1.0, n=Math.floor(tEnd/dt);
+  const rec = {t:[],sled:[],fork:[],tire:[],acc:[]};
+  const sample = Math.max(1, Math.floor(n/900));
+  let t=0, bottomed=false, maxFork=0, peakAcc=0, peakTire=0, lastBig=0;
+  let sumRing=0, cntRing=0, ringVals=[];
+
+  for(let i=0;i<n;i++){
+    const sFork = st[0]-st[2];
+    const xr = road(t);
+    const delta = Math.max(0, st[2]-xr);
+    if(i%sample===0){
+      const d=deriv(st,t);
+      const accG = -d[1]/G;                         // felt cockpit accel (g), up = +
+      rec.t.push(t*1000);
+      rec.sled.push(st[2]*1000);                    // axle / contact travel (mm)
+      rec.fork.push(sFork*1000);                    // fork compression (mm)
+      rec.tire.push(delta*1000);                    // tire compression (mm)
+      rec.acc.push(accG);
+    }
+    maxFork=Math.max(maxFork,sFork);
+    peakTire=Math.max(peakTire,delta);
+    { const d=deriv(st,t); const ag=Math.abs(-d[1]/G);
+      peakAcc=Math.max(peakAcc,ag); if(ag>0.15) lastBig=t; }
+    if(sFork>=travel_m*0.985) bottomed=true;
+    if(t>0.12 && t<0.75){ ringVals.push(delta); sumRing+=delta; cntRing++; }
+
+    const k1=deriv(st,t);
+    const s2=st.map((v,j)=>v+0.5*dt*k1[j]); const k2=deriv(s2,t+0.5*dt);
+    const s3=st.map((v,j)=>v+0.5*dt*k2[j]); const k3=deriv(s3,t+0.5*dt);
+    const s4=st.map((v,j)=>v+dt*k3[j]);     const k4=deriv(s4,t+dt);
+    st=st.map((v,j)=>v+dt/6*(k1[j]+2*k2[j]+2*k3[j]+k4[j]));
+    t+=dt;
+  }
+  // ring RMS of tire compression in the post-impact window (mm)
+  const meanR = cntRing? sumRing/cntRing : 0;
+  let vv=0; ringVals.forEach(x=>vv+=(x-meanR)*(x-meanR));
+  const ringRMS = cntRing? Math.sqrt(vv/cntRing)*1000 : 0;
+
+  return {
+    rec, travel_m, sSag, maxFork, peakAcc, peakTire,
+    settleT: lastBig*1000, restFork: st[0]-st[2], bottomed,
+    ms, mu, fHop, fu, fa, za, ma, kCoil, kt, ct, ringRMS
+  };
+}
+
+/* ============================================================
+   ANALYTIC TMD TRANSFER FUNCTION (exact, frequency domain)
+   The honest place the Den Hartog absorber shows its benefit:
+   a lightly-damped tire-hop resonator excited across a sweep.
+   Returns transmissibility curves with and without the TMD.
+   ============================================================ */
+function tmdTransfer(){
+  const m = S.unsprung;
+  const kt = 120000 + (S.psi-40)*120;
+  // effective primary damping ratio from current tire damping (kept light)
+  const cCrit = 2*Math.sqrt(kt*m);
+  const zeta = Math.min(0.18, Math.max(0.02, S.ct/cCrit + 0.02));
+  const c = zeta*cCrit;
+  const fn = Math.sqrt(kt/m)/(2*Math.PI);
+  const muR = S.mu/100, ma = m*muR;
+  const fa = S.autoTune ? fn/(1+muR) : S.fmtd;
+  const za = S.autoTune ? Math.sqrt(3*muR/(8*Math.pow(1+muR,3))) : S.zmtd;
+  const wa = 2*Math.PI*fa, ka = ma*wa*wa, ca = 2*za*ma*wa;
+
+  function solveTR(f, withMTD){
+    const w=2*Math.PI*f;
+    const Fb={re:kt, im:w*c};                       // base spring/damper drive, Y=1
+    if(!withMTD){
+      const Z={re:kt-w*w*m, im:w*c};
+      const d=Z.re*Z.re+Z.im*Z.im;
+      return Math.hypot((Fb.re*Z.re+Fb.im*Z.im)/d, (Fb.im*Z.re-Fb.re*Z.im)/d);
+    }
+    // 2x2 complex system
+    const A00={re:kt+ka-w*w*m, im:w*(c+ca)}, A01={re:-ka, im:-w*ca};
+    const A10={re:-ka, im:-w*ca},            A11={re:ka-w*w*ma, im:w*ca};
+    const det={re:A00.re*A11.re-A00.im*A11.im-(A01.re*A10.re-A01.im*A10.im),
+               im:A00.re*A11.im+A00.im*A11.re-(A01.re*A10.im+A01.im*A10.re)};
+    const num={re:Fb.re*A11.re-Fb.im*A11.im, im:Fb.re*A11.im+Fb.im*A11.re};
+    const dd=det.re*det.re+det.im*det.im;
+    return Math.hypot((num.re*det.re+num.im*det.im)/dd, (num.im*det.re-num.re*det.im)/dd);
+  }
+  const off=[], on=[]; let pkOff=0, pkOn=0, fLo=Math.max(3,fn*0.45), fHi=fn*1.6;
+  for(let f=fLo; f<=fHi; f+=(fHi-fLo)/160){
+    const a=solveTR(f,false), b=solveTR(f,true);
+    off.push([f,a]); on.push([f,b]);
+    if(a>pkOff)pkOff=a; if(b>pkOn)pkOn=b;
+  }
+  return {off, on, pkOff, pkOn, fn, fa, za, ma,
+          reduction: pkOff>0 ? (pkOff-pkOn)/pkOff*100 : 0};
+}
+
+/* ============================================================
+   SPRING CURVE (force vs travel), static
+   ============================================================ */
+function springCurve(type){
+  const travel_m=S.travel/1000;
+  const kCoil=S.coilRate*1000;
+  const Pa=S.psi*6894.76, Patm=101325, A=0.00090;
+  const Lstroke=travel_m*1.12, nPoly=1.1+S.prog*0.09, p0=Pa+Patm;
+  const pts=[];
+  for(let i=0;i<=60;i++){
+    const s=travel_m*i/60;
+    let F;
+    if(type==='coil'){ F=kCoil*s; }
+    else{
+      const Lc=Math.max(Lstroke-s, travel_m*0.06);
+      F=(p0*Math.pow(Lstroke/Lc,nPoly)-Patm)*A;
+    }
+    pts.push({s:s*1000, F:F});
+  }
+  return pts;
+}
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+const C = {
+  coil:'#ff6a3d', air:'#36c6ff', mtd:'#b388ff', sled:'#f4d35e',
+  grid:'#222a33', axis:'#5d6b78', ink:'#e8edf2', dim:'#9aa7b4', good:'#39d98a'
+};
+function dpiCanvas(cv,h){
+  const dpr=window.devicePixelRatio||1;
+  const w=cv.parentElement.clientWidth-32;
+  cv.style.width=w+'px'; cv.style.height=h+'px';
+  cv.width=w*dpr; cv.height=h*dpr;
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+
+function drawAxes(ctx,x0,y0,x1,y1,xmin,xmax,ymin,ymax,xlab,ylab,nx,ny){
+  ctx.font="10px 'Spline Sans Mono',monospace";
+  ctx.strokeStyle=C.grid; ctx.lineWidth=1; ctx.fillStyle=C.axis;
+  nx=nx||6; ny=ny||5;
+  for(let i=0;i<=ny;i++){
+    const y=y0+(y1-y0)*i/ny, val=ymax-(ymax-ymin)*i/ny;
+    ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke();
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillText(val.toFixed(Math.abs(ymax)<3?1:0), x0-8, y);
+  }
+  for(let i=0;i<=nx;i++){
+    const x=x0+(x1-x0)*i/nx, val=xmin+(xmax-xmin)*i/nx;
+    ctx.strokeStyle=C.grid;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.stroke();
+    ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillStyle=C.axis;ctx.fillText(val.toFixed(0), x, y1+6);
+  }
+  ctx.fillStyle=C.dim; ctx.textAlign='center';
+  ctx.fillText(xlab, (x0+x1)/2, y1+22);
+  ctx.save();ctx.translate(x0-40,(y0+y1)/2);ctx.rotate(-Math.PI/2);
+  ctx.fillText(ylab,0,0);ctx.restore();
+}
+function plotLine(ctx,pts,xmin,xmax,ymin,ymax,x0,y0,x1,y1,color,width,dash){
+  ctx.strokeStyle=color;ctx.lineWidth=width||2;ctx.setLineDash(dash||[]);
+  ctx.beginPath();let started=false;
+  pts.forEach(p=>{
+    const X=x0+(x1-x0)*(p.x-xmin)/(xmax-xmin);
+    const Y=y0+(y1-y0)*(1-(p.y-ymin)/(ymax-ymin));
+    if(!started){ctx.moveTo(X,Y);started=true;}else ctx.lineTo(X,Y);
+  });
+  ctx.stroke();ctx.setLineDash([]);
+}
+
+let resultCoil=null, resultAir=null, resultCoilMTD=null, resultAirMTD=null;
+
+function recompute(){
+  const want = S.springMode;
+  const showCoil = want!=='air';
+  const showAir  = want!=='coil';
+
+  // baseline (no MTD) always for comparison reference
+  const savedMTD=S.mtdOn;
+  // compute with current MTD state
+  resultCoil = showCoil? simulate('coil') : null;
+  resultAir  = showAir ? simulate('air')  : null;
+
+  // also compute the "without MTD" version when MTD on, for verdict comparison
+  let baseCoil=null, baseAir=null;
+  if(S.mtdOn){
+    S.mtdOn=false;
+    baseCoil = showCoil? simulate('coil'):null;
+    baseAir  = showAir ? simulate('air') :null;
+    S.mtdOn=true;
+  }
+
+  drawSchematic();
+  drawDisp(showCoil,showAir);
+  drawAcc(showCoil,showAir);
+  drawSpring(showCoil,showAir);
+  drawMetrics(showCoil,showAir);
+  drawVerdict(showCoil,showAir,baseCoil,baseAir);
+  drawTmd();
+}
+
+/* ---- TMD transfer-function chart (analytic, exact) ---- */
+function drawTmd(){
+  const card=$('tmdCard');
+  if(!S.mtdOn){ card.style.display='none'; return; }
+  card.style.display='';
+  const tf=tmdTransfer();
+  const cv=$('cTmd');const {ctx,w,h}=dpiCanvas(cv,240);
+  ctx.clearRect(0,0,w,h);
+  const pad=54,x0=pad,x1=w-16,y0=16,y1=h-46;
+  const fmin=tf.off[0][0], fmax=tf.off[tf.off.length-1][0];
+  const ymax=Math.max(tf.pkOff, tf.pkOn)*1.12;
+  drawAxes(ctx,x0,y0,x1,y1,fmin,fmax,0,ymax,'excitation frequency (Hz)','amplification  (×)',6,4);
+  // tuned-frequency marker
+  const Xa=x0+(x1-x0)*(tf.fa-fmin)/(fmax-fmin);
+  ctx.strokeStyle='rgba(179,136,255,.45)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(Xa,y0);ctx.lineTo(Xa,y1);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(179,136,255,.9)';ctx.font="9px 'Spline Sans Mono'";ctx.textAlign='center';
+  ctx.fillText('f tuned '+tf.fa.toFixed(0)+'Hz', Xa, y0+10);
+  const toPts=arr=>arr.map(p=>({x:p[0],y:p[1]}));
+  plotLine(ctx,toPts(tf.off),fmin,fmax,0,ymax,x0,y0,x1,y1,C.dim,2,[6,4]);   // bare
+  plotLine(ctx,toPts(tf.on), fmin,fmax,0,ymax,x0,y0,x1,y1,C.mtd,2.6);        // with MTD
+  // legend + reduction callout
+  ctx.textAlign='left';ctx.font="10px 'Spline Sans Mono'";
+  ctx.fillStyle=C.dim;ctx.fillText('— — no MTD  (peak '+tf.pkOff.toFixed(1)+'×)', x0+10, y0+16);
+  ctx.fillStyle=C.mtd;ctx.fillText('——  with MTD (peak '+tf.pkOn.toFixed(1)+'×)', x0+10, y0+32);
+  ctx.fillStyle=tf.reduction>5?C.good:C.dim;
+  ctx.fillText('peak reduced '+tf.reduction.toFixed(0)+'%', x0+10, y0+48);
+}
+
+/* ---- displacement chart (Fig 9 analog) ---- */
+function drawDisp(showCoil,showAir){
+  const cv=$('cDisp');const {ctx,w,h}=dpiCanvas(cv,340);
+  ctx.clearRect(0,0,w,h);
+  // three stacked sub-panels: sled(axle), fork, tire
+  const labels=['Axle / sled travel (mm)','Fork compression (mm)','Tire deflection (mm)'];
+  const keys=['sled','fork','tire'];
+  const pad=46, top=14, gap=18;
+  const panelH=(h-top-gap*2-26)/3;
+  const ref = resultCoil||resultAir;
+  const tMax = ref.rec.t[ref.rec.t.length-1];
+
+  keys.forEach((key,pi)=>{
+    const y0=top+pi*(panelH+gap), y1=y0+panelH;
+    const x0=pad, x1=w-14;
+    // y-range
+    let vals=[];
+    if(showCoil) vals=vals.concat(resultCoil.rec[key]);
+    if(showAir)  vals=vals.concat(resultAir.rec[key]);
+    let ymax=Math.max(...vals, 1)*1.15, ymin=Math.min(...vals,0);
+    if(key==='fork'){ ymax=Math.max(ymax, S.travel*1.02); }
+    if(ymin>-1) ymin=-ymax*0.05;
+    drawAxes(ctx,x0,y0,x1,y1,0,tMax,ymin,ymax,'',labels[pi],6,3);
+    // travel limit line for fork
+    if(key==='fork'){
+      const Y=y0+(y1-y0)*(1-(S.travel-ymin)/(ymax-ymin));
+      ctx.strokeStyle='rgba(255,93,108,.6)';ctx.setLineDash([4,4]);ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x0,Y);ctx.lineTo(x1,Y);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(255,93,108,.85)';ctx.font="9px 'Spline Sans Mono'";ctx.textAlign='left';
+      ctx.fillText('bottom-out '+S.travel+'mm', x0+6, Y-4);
+    }
+    const toPts=(arr,rec)=>rec.t.map((t,i)=>({x:t,y:arr[i]}));
+    if(showCoil){
+      const r=resultCoil;
+      plotLine(ctx,toPts(r.rec[key],r.rec),0,tMax,ymin,ymax,x0,y0,x1,y1,
+        S.mtdOn?C.coil:C.coil, S.mtdOn?2.4:2.4, S.mtdOn?[6,4]:[]);
+    }
+    if(showAir){
+      const r=resultAir;
+      plotLine(ctx,toPts(r.rec[key],r.rec),0,tMax,ymin,ymax,x0,y0,x1,y1,
+        C.air, 2.4, S.mtdOn?[6,4]:[]);
+    }
+  });
+  ctx.fillStyle=C.dim;ctx.font="10px 'Spline Sans Mono'";ctx.textAlign='center';
+  ctx.fillText('time after impact (ms)', w/2, h-4);
+}
+
+/* ---- acceleration chart ---- */
+function drawAcc(showCoil,showAir){
+  const cv=$('cAcc');const {ctx,w,h}=dpiCanvas(cv,230);
+  ctx.clearRect(0,0,w,h);
+  const pad=46,x0=pad,x1=w-14,y0=14,y1=h-40;
+  const ref=resultCoil||resultAir;const tMax=ref.rec.t[ref.rec.t.length-1];
+  let vals=[];
+  if(showCoil) vals=vals.concat(resultCoil.rec.acc);
+  if(showAir) vals=vals.concat(resultAir.rec.acc);
+  let amax=Math.max(Math.max(...vals.map(Math.abs)),1)*1.15;
+  drawAxes(ctx,x0,y0,x1,y1,0,tMax,-amax,amax,'time after impact (ms)','sprung accel (g)',6,4);
+  // zero line
+  const Yz=y0+(y1-y0)*0.5;
+  ctx.strokeStyle='rgba(154,167,180,.35)';ctx.lineWidth=1;ctx.beginPath();
+  ctx.moveTo(x0,Yz);ctx.lineTo(x1,Yz);ctx.stroke();
+  const toPts=(arr,rec)=>rec.t.map((t,i)=>({x:t,y:arr[i]}));
+  if(showCoil) plotLine(ctx,toPts(resultCoil.rec.acc,resultCoil.rec),0,tMax,-amax,amax,x0,y0,x1,y1,C.coil,2,S.mtdOn?[6,4]:[]);
+  if(showAir)  plotLine(ctx,toPts(resultAir.rec.acc,resultAir.rec),0,tMax,-amax,amax,x0,y0,x1,y1,C.air,2,S.mtdOn?[6,4]:[]);
+}
+
+/* ---- spring curve ---- */
+function drawSpring(showCoil,showAir){
+  const cv=$('cSpring');const {ctx,w,h}=dpiCanvas(cv,210);
+  ctx.clearRect(0,0,w,h);
+  const pad=52,x0=pad,x1=w-14,y0=14,y1=h-44;
+  const cc=springCurve('coil'), ac=springCurve('air');
+  let allF=[]; if(showCoil)allF=allF.concat(cc.map(p=>p.F)); if(showAir)allF=allF.concat(ac.map(p=>p.F));
+  const Fmax=Math.max(...allF,100)*1.1;
+  drawAxes(ctx,x0,y0,x1,y1,0,S.travel,0,Fmax/1000,'fork travel (mm)','spring force (kN)',6,4);
+  const toPts=arr=>arr.map(p=>({x:p.s,y:p.F/1000}));
+  // sag marker
+  if(showCoil){
+    plotLine(ctx,toPts(cc),0,S.travel,0,Fmax/1000,x0,y0,x1,y1,C.coil,2.6);
+  }
+  if(showAir){
+    plotLine(ctx,toPts(ac),0,S.travel,0,Fmax/1000,x0,y0,x1,y1,C.air,2.6);
+  }
+  // rider weight reference line (front)
+  const wRef=(S.rider*(S.frontPct/100)+4-S.unsprung)*G/1000;
+  const Yw=y0+(y1-y0)*(1-(wRef)/(Fmax/1000));
+  ctx.strokeStyle='rgba(244,211,94,.55)';ctx.setLineDash([5,4]);ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(x0,Yw);ctx.lineTo(x1,Yw);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(244,211,94,.9)';ctx.font="9px 'Spline Sans Mono'";ctx.textAlign='left';
+  ctx.fillText('static front load (sag set here)', x0+6, Yw-5);
+}
+
+/* ---- metrics tiles ---- */
+function fmtPct(a,b){ if(!a||!b)return ''; const d=(b-a)/a*100; return (d>=0?'+':'')+d.toFixed(0)+'%'; }
+function drawMetrics(showCoil,showAir){
+  const m=$('metrics');
+  const tiles=[
+    {lab:'Peak fork stroke used', get:r=>r.maxFork*1000, u:'mm', warn:r=>r.bottomed},
+    {lab:'Peak cockpit accel', get:r=>r.peakAcc, u:'g', fix:1},
+    {lab:'Peak tire deflection', get:r=>r.peakTire*1000, u:'mm'},
+    {lab:'Settling time (|a|<0.15g)', get:r=>r.settleT, u:'ms'},
+  ];
+  m.innerHTML='';
+  tiles.forEach(t=>{
+    const fix = t.fix!=null?t.fix:0;
+    let rows='';
+    if(showCoil){
+      const v=t.get(resultCoil);
+      const bad=t.warn&&t.warn(resultCoil);
+      rows+=`<div class="row"><span class="nm"><span class="dot" style="background:${C.coil}"></span>Coil</span>
+        <span class="num" style="color:${bad?'var(--bad)':C.coil}">${v.toFixed(fix)}<span style="font-size:10px;color:var(--ink-faint)"> ${t.u}</span></span></div>`;
+    }
+    if(showAir){
+      const v=t.get(resultAir);
+      const bad=t.warn&&t.warn(resultAir);
+      rows+=`<div class="row"><span class="nm"><span class="dot" style="background:${C.air}"></span>Air</span>
+        <span class="num" style="color:${bad?'var(--bad)':C.air}">${v.toFixed(fix)}<span style="font-size:10px;color:var(--ink-faint)"> ${t.u}</span></span></div>`;
+    }
+    m.innerHTML+=`<div class="metric"><div class="lab">${t.lab}</div>${rows}</div>`;
+  });
+}
+
+/* ---- verdict ---- */
+function drawVerdict(showCoil,showAir,baseCoil,baseAir){
+  const el=$('verdict');
+  let html='';
+  if(S.mtdOn){
+    const ref = resultCoil||resultAir;
+    const baseRef = baseCoil||baseAir;
+    const tf = tmdTransfer();
+    // time-domain: change in post-impact tire-hop ring RMS
+    let dRing = null;
+    if(baseRef && baseRef.ringRMS>1e-6){
+      dRing = (ref.ringRMS - baseRef.ringRMS)/baseRef.ringRMS*100;
+    }
+    const tfHelps   = tf.reduction > 8;          // theory says it cuts the resonance
+    const timeHelps = dRing!==null && dRing < -4; // it actually cut the ring on THIS hit
+    const helps = tfHelps && timeHelps;
+    const tag = helps ? 'MTD IS HELPING'
+              : tfHelps ? 'MTD HELPS THE RESONANCE — BARELY EXCITED HERE'
+              : 'MTD MARGINAL HERE';
+    const tagColor = helps ? C.good : (tfHelps ? 'var(--warn)' : 'var(--ink-dim)');
+    html += `<span class="tag" style="color:${tagColor}">⟁ ${tag}</span> `;
+    html += `<span style="color:var(--ink-dim)">In theory (frequency sweep, right) the absorber cuts the tire-hop resonance peak by <b style="color:${tf.reduction>8?C.good:'var(--ink)'}">${tf.reduction.toFixed(0)}%</b> — split into two smaller peaks around the ${tf.fa.toFixed(0)} Hz tuning. `;
+    if(dRing!==null){
+      html += `On <b>this</b> impact the post-contact tire-hop ringing changed by <b style="color:${dRing<-4?C.good:'var(--ink)'}">${dRing>=0?'+':''}${dRing.toFixed(0)}%</b>. `;
+    }
+    html += `</span><br><span style="color:var(--ink-dim)">`;
+    if(helps){
+      html += `The terrain is feeding sustained energy near the tire's natural frequency (≈${ref.fHop.toFixed(0)} Hz), so the tuned mass has a real oscillation to soak up. Auto-tune set f≈${ref.fa.toFixed(1)} Hz, ζ≈${ref.za.toFixed(2)} (Den&nbsp;Hartog optimum for µ=${S.mu}%).`;
+    } else if(tfHelps){
+      html += `But a well-damped fork on a single hit rings down almost immediately — there is little sustained oscillation for the absorber to remove. Lower the <b>tire damping</b>, choose <b>ROCK</b> terrain, and raise <b>variability</b> to drive the tire near ${ref.fHop.toFixed(0)} Hz and watch the time-domain benefit appear.`;
+    } else {
+      html += `At this tuning the absorber barely engages the resonance. Enable <b>Auto-tune</b>, or move the tuning frequency toward the tire-hop frequency (≈${ref.fHop.toFixed(0)} Hz).`;
+    }
+    html += `</span>`;
+  } else {
+    // air vs coil verdict
+    if(showCoil&&showAir){
+      const ratio=resultAir.peakAcc/resultCoil.peakAcc;
+      const coilBottom=resultCoil.bottomed, airBottom=resultAir.bottomed;
+      html+=`<span class="tag" style="color:var(--air2)">AIR vs <span style="color:var(--coil)">COIL</span></span> — `;
+      html+=`Coil ${coilBottom?'<b style="color:var(--bad)">bottoms out</b>':'stays in travel'} (${(resultCoil.maxFork*1000).toFixed(0)}mm), `;
+      html+=`Air ${airBottom?'<b style="color:var(--bad)">bottoms out</b>':'stays in travel'} (${(resultAir.maxFork*1000).toFixed(0)}mm). `;
+      html+=`<br><span style="color:var(--ink-dim)">The air spring's progressive ramp (set by ${S.prog} token${S.prog!==1?'s':''}) resists bottom-out at the end of stroke, while the linear coil gives a more consistent mid-stroke feel. Peak cockpit accel — air is ${ratio<1?((1-ratio)*100).toFixed(0)+'% lower':((ratio-1)*100).toFixed(0)+'% higher'} than coil here.</span>`;
+    } else {
+      const r=showCoil?resultCoil:resultAir;
+      html+=`<span class="tag">${showCoil?'COIL':'AIR'} fork</span> — peak stroke ${(r.maxFork*1000).toFixed(0)}mm of ${S.travel}mm, ${r.bottomed?'<b style="color:var(--bad)">bottomed out</b>':'within travel'}; cockpit peak ${r.peakAcc.toFixed(1)}g. Enable both springs to compare.`;
+    }
+  }
+  el.innerHTML=html;
+}
+
+/* ============================================================
+   SCHEMATIC (animated live deflection)
+   ============================================================ */
+function drawSchematic(){
+  const svg=$('schematic');
+  const ref=resultCoil||resultAir;
+  const sagFrac  = ref.sSag/ref.travel_m;
+  const peakFrac = Math.min(1,ref.maxFork/ref.travel_m);
+  const tireFrac = Math.min(1,ref.peakTire/0.05);
+  const showAir  = S.springMode!=='coil';
+  const showCoil = S.springMode!=='air';
+
+  /* ── fork geometry (SVG coords) ── */
+  const CX=145;
+  const crownX=95,crownY=22,crownW=100,crownH=16;
+  const stW=20,stTop=crownY+crownH,stH=134;
+  const stL=CX-38,stR=CX+18;
+  const llW=14,llL=stL+3,llR=stR+3,llH=80;
+  const SVT=120,axleMax=252;
+  const axY  =axleMax-peakFrac*SVT;
+  const sagAY=axleMax-sagFrac*SVT;
+  const llTop=axY-llH;
+  const WR=24;
+  const llFill=peakFrac>0.85?'#3d1b28':peakFrac>0.68?'#332b14':'#192d48';
+  const llBdr =peakFrac>0.85?C.bad:peakFrac>0.68?C.warn:'#2e5880';
+
+  /* ── SVG helpers ── */
+  function cSpr(x,y1,y2,col,n,w){
+    let d='M'+x+' '+y1;
+    const hh=(y2-y1)/n;
+    for(let i=0;i<n;i++) d+=' l'+w+' '+(hh*.5)+' l'+(-2*w)+' '+(hh*.5);
+    return '<path d="'+d+' L'+x+' '+y2+'" stroke="'+col+'" stroke-width="2.5" fill="none" stroke-linejoin="round"/>';
+  }
+  function aSpr(x,y1,y2,col){
+    const w=11,cy2=y1+(y2-y1)*.52;
+    return '<rect x="'+(x-w)+'" y="'+y1+'" width="'+(w*2)+'" height="'+(y2-y1)+'" rx="4" fill="none" stroke="'+col+'" stroke-width="2"/>'
+      +'<rect x="'+(x-w+3)+'" y="'+cy2+'" width="'+(w*2-6)+'" height="'+((y2-y1)*.32)+'" rx="2.5" fill="'+col+'" opacity=".22"/>'
+      +'<text x="'+x+'" y="'+(y1+(y2-y1)*.44)+'" font-family="Spline Sans Mono,monospace" font-size="8" fill="'+col+'" text-anchor="middle" opacity=".75">AIR</text>';
+  }
+  function dSym(x,y1,y2,col){
+    const bh=(y2-y1)*.52,bw=9,bY=y1+(y2-y1)*.22;
+    return '<line x1="'+x+'" y1="'+y1+'" x2="'+x+'" y2="'+bY+'" stroke="'+col+'" stroke-width="2"/>'
+      +'<rect x="'+(x-bw)+'" y="'+bY+'" width="'+(bw*2)+'" height="'+bh+'" fill="none" stroke="'+col+'" stroke-width="1.8" rx="1"/>'
+      +'<rect x="'+(x-bw+2)+'" y="'+(bY+bh*.38)+'" width="'+(bw*2-4)+'" height="'+(bh*.22)+'" fill="'+col+'" opacity=".4"/>'
+      +'<line x1="'+x+'" y1="'+(bY+bh)+'" x2="'+x+'" y2="'+y2+'" stroke="'+col+'" stroke-width="2.5"/>';
+  }
+
+  /* spring+damper icons beside fork */
+  const iY1=stTop+6,iY2=llTop+6;
+  const spX=stL-18,dpX=stR+stW+8;
+  let sprIco='',dmpIco='';
+  if(showCoil){sprIco+=cSpr(spX,iY1,iY2,C.coil,5,9);dmpIco+=dSym(dpX,iY1,iY2,C.coil);}
+  if(showAir){sprIco+=aSpr(spX+(showCoil?14:0),iY1,iY2,C.air);if(!showCoil)dmpIco+=dSym(dpX,iY1,iY2,C.air);}
+
+  /* travel bar */
+  const tbX=stR+stW+42,tbY=stTop,tbH=SVT;
+  const pkDY=peakFrac*SVT,sagDY=sagFrac*SVT;
+  const tbCol=peakFrac>0.85?C.bad:peakFrac>0.68?C.warn:(showAir?C.air:C.coil);
+
+  /* MTD hint above crown */
+  let mtdFk='';
+  if(S.mtdOn&&ref.ma>0){
+    mtdFk=cSpr(CX,stTop-2,crownY+2,C.mtd,3,7)
+      +'<rect x="'+(CX-21)+'" y="'+(crownY-18)+'" width="42" height="18" rx="4" fill="'+C.mtd+'" opacity=".85"/>'
+      +'<text x="'+CX+'" y="'+(crownY-6)+'" fill="#18102a" font-family="Spline Sans Mono,monospace" font-size="8.5" font-weight="700" text-anchor="middle">TMD</text>';
+  }
+
+  /* spoke lines */
+  let spokes='';
+  for(let i=0;i<9;i++){
+    const a=i*Math.PI/4.5,r1=3.5,r2=WR-4;
+    spokes+='<line x1="'+(CX+r1*Math.cos(a)).toFixed(1)+'" y1="'+(axY+r1*Math.sin(a)).toFixed(1)
+      +'" x2="'+(CX+r2*Math.cos(a)).toFixed(1)+'" y2="'+(axY+r2*Math.sin(a)).toFixed(1)+'" stroke="#253647" stroke-width="1.2"/>';
+  }
+
+  /* ── quarter-car model (right half) ── */
+  const RCX=490,GY=274,WRQ=27;
+  const aYQ=GY-WRQ-tireFrac*11,lYQ=aYQ-36;
+  const fkH=66*(0.35+0.6*peakFrac),uYQ=lYQ-fkH-14,sYQ=uYQ-44;
+  const useAirM=S.springMode==='air';
+  const qcSp=useAirM?aSpr(RCX-42,uYQ,lYQ,C.air):cSpr(RCX-42,uYQ,lYQ,C.coil,4,11);
+  const qcDp=dSym(RCX+42,uYQ,lYQ,useAirM?C.air:C.coil);
+  let qcMtd='';
+  if(S.mtdOn){
+    const mx=RCX+108,my1=lYQ-4,my2=lYQ-44;
+    qcMtd='<g opacity=".9">'+cSpr(mx,my2+18,my1,C.mtd,3,8)
+      +'<rect x="'+(mx-20)+'" y="'+(my2-18)+'" width="40" height="18" rx="4" fill="'+C.mtd+'" opacity=".85"/>'
+      +'<text x="'+mx+'" y="'+(my2-6)+'" fill="#1a1024" font-family="Spline Sans Mono,monospace" font-size="8" font-weight="700" text-anchor="middle">MTD</text>'
+      +'<line x1="'+mx+'" y1="'+my1+'" x2="'+(RCX+42)+'" y2="'+lYQ+'" stroke="'+C.mtd+'" stroke-width="1.5" stroke-dasharray="3 3"/></g>';
+  }
+  const lscHsc=showAir
+    ?'<text x="'+(RCX+55)+'" y="'+((uYQ+lYQ)/2-7)+'" fill="'+C.air+'" font-family="Spline Sans Mono,monospace" font-size="8.5">LSC '+S.lsc+'cl</text>'
+     +'<text x="'+(RCX+55)+'" y="'+((uYQ+lYQ)/2+5)+'" fill="'+C.air+'" font-family="Spline Sans Mono,monospace" font-size="8.5">HSC '+S.hsc+'cl</text>'
+    :'';
+
+  /* ground hatch lines */
+  let gHatch='';
+  for(let i=0;i<15;i++) gHatch+='<line x1="'+(305+i*26)+'" y1="'+GY+'" x2="'+(298+i*26)+'" y2="'+(GY+9)+'" stroke="'+C.axis+'" stroke-width="1.3"/>';
+
+  svg.innerHTML=
+    /* ── left: fork anatomy ── */
+    '<text x="'+CX+'" y="14" font-family="Spline Sans Mono,monospace" font-size="9" fill="'+C.dim+'" text-anchor="middle">m_s = '+ref.ms.toFixed(1)+' kg</text>'
+    /* steerer tube */
+   +'<rect x="'+(CX-7)+'" y="0" width="14" height="'+(crownY+2)+'" rx="3" fill="#14202e" stroke="#243448" stroke-width="1"/>'
+    /* crown */
+   +'<rect x="'+crownX+'" y="'+crownY+'" width="'+crownW+'" height="'+crownH+'" rx="4" fill="#182434" stroke="#385070" stroke-width="1.8"/>'
+   +'<circle cx="'+(crownX+14)+'" cy="'+(crownY+crownH/2)+'" r="2.5" fill="#0c1420" stroke="#2e4264" stroke-width="1"/>'
+   +'<circle cx="'+(crownX+crownW-14)+'" cy="'+(crownY+crownH/2)+'" r="2.5" fill="#0c1420" stroke="#2e4264" stroke-width="1"/>'
+    /* stanchions */
+   +'<rect x="'+stL+'" y="'+stTop+'" width="'+stW+'" height="'+stH+'" rx="3" fill="#101e2e" stroke="#273d58" stroke-width="1.4"/>'
+   +'<rect x="'+(stL+4)+'" y="'+(stTop+4)+'" width="'+(stW-8)+'" height="'+(stH-8)+'" rx="1.5" fill="#080e1a" opacity=".9"/>'
+   +'<rect x="'+stR+'" y="'+stTop+'" width="'+stW+'" height="'+stH+'" rx="3" fill="#101e2e" stroke="#273d58" stroke-width="1.4"/>'
+   +'<rect x="'+(stR+4)+'" y="'+(stTop+4)+'" width="'+(stW-8)+'" height="'+(stH-8)+'" rx="1.5" fill="#080e1a" opacity=".9"/>'
+    /* lower legs */
+   +'<rect x="'+llL+'" y="'+llTop+'" width="'+llW+'" height="'+llH+'" rx="2" fill="'+llFill+'" stroke="'+llBdr+'" stroke-width="1.8"/>'
+   +'<rect x="'+llR+'" y="'+llTop+'" width="'+llW+'" height="'+llH+'" rx="2" fill="'+llFill+'" stroke="'+llBdr+'" stroke-width="1.8"/>'
+    /* arch */
+   +'<rect x="'+(llL+llW)+'" y="'+(axY-11)+'" width="'+(llR-llL-llW)+'" height="11" rx="2" fill="'+llFill+'" stroke="'+llBdr+'" stroke-width="1.4"/>'
+    /* brake caliper detail */
+   +'<rect x="'+(llL-7)+'" y="'+(llTop+llH*.48)+'" width="7" height="20" rx="2" fill="#101e2e" stroke="#243448" stroke-width="1"/>'
+    /* axle */
+   +'<line x1="'+stL+'" y1="'+axY+'" x2="'+llL+'" y2="'+axY+'" stroke="#304a60" stroke-width="2.5"/>'
+   +'<line x1="'+(llR+llW)+'" y1="'+axY+'" x2="'+(stR+stW)+'" y2="'+axY+'" stroke="#304a60" stroke-width="2.5"/>'
+   +'<circle cx="'+CX+'" cy="'+axY+'" r="5.5" fill="#304a60" stroke="#7a8fa0" stroke-width="1.5"/>'
+    /* wheel */
+   +'<circle cx="'+CX+'" cy="'+axY+'" r="'+WR+'" fill="none" stroke="#182030" stroke-width="8"/>'
+   +'<circle cx="'+CX+'" cy="'+axY+'" r="'+(WR+1)+'" fill="none" stroke="#283848" stroke-width="1"/>'
+   +spokes
+   +'<circle cx="'+CX+'" cy="'+axY+'" r="'+Math.round(WR*0.58)+'" fill="none" stroke="#283848" stroke-width="1.2"/>'
+   +'<circle cx="'+CX+'" cy="'+axY+'" r="3.5" fill="#4a5a6a"/>'
+   +'<text x="'+(CX+WR+7)+'" y="'+(axY+4)+'" font-family="Spline Sans Mono,monospace" font-size="9" fill="'+C.dim+'">m_u='+S.unsprung+'kg</text>'
+    /* spring + damper icons */
+   +sprIco+dmpIco
+    /* full-extension reference */
+   +'<line x1="26" y1="'+(axleMax+WR+4)+'" x2="248" y2="'+(axleMax+WR+4)+'" stroke="'+C.sled+'" stroke-width="1.2" stroke-dasharray="5 3" opacity=".4"/>'
+   +'<text x="28" y="'+(axleMax+WR+14)+'" font-family="Spline Sans Mono,monospace" font-size="7.5" fill="'+C.sled+'" opacity=".4">full ext. ref</text>'
+    /* travel bar */
+   +'<rect x="'+tbX+'" y="'+tbY+'" width="5" height="'+tbH+'" rx="2.5" fill="#141e2c"/>'
+   +'<rect x="'+tbX+'" y="'+tbY+'" width="5" height="'+pkDY.toFixed(1)+'" rx="2.5" fill="'+tbCol+'" opacity=".8"/>'
+   +'<line x1="'+(tbX-5)+'" y1="'+(tbY+sagDY)+'" x2="'+(tbX+10)+'" y2="'+(tbY+sagDY)+'" stroke="'+C.dim+'" stroke-width="1.5"/>'
+   +'<text x="'+(tbX+13)+'" y="'+(tbY+sagDY+4).toFixed(0)+'" font-family="Spline Sans Mono,monospace" font-size="8" fill="'+C.dim+'">sag '+(sagFrac*100).toFixed(0)+'%</text>'
+   +'<line x1="'+(tbX-5)+'" y1="'+(tbY+pkDY)+'" x2="'+(tbX+10)+'" y2="'+(tbY+pkDY)+'" stroke="'+tbCol+'" stroke-width="2"/>'
+   +'<text x="'+(tbX+13)+'" y="'+(tbY+pkDY+4).toFixed(0)+'" font-family="Spline Sans Mono,monospace" font-size="8" fill="'+tbCol+'">peak '+(peakFrac*100).toFixed(0)+'%</text>'
+   +'<text x="'+(tbX+2)+'" y="'+(tbY-5)+'" font-family="Spline Sans Mono,monospace" font-size="7.5" fill="'+C.axis+'" text-anchor="middle">0</text>'
+   +'<text x="'+(tbX+2)+'" y="'+(tbY+tbH+11)+'" font-family="Spline Sans Mono,monospace" font-size="7.5" fill="'+C.axis+'" text-anchor="middle">end</text>'
+   +mtdFk
+    /* divider */
+   +'<line x1="268" y1="8" x2="268" y2="292" stroke="#1e2a3a" stroke-width="1"/>'
+    /* ── right: quarter-car model ── */
+   +'<line x1="278" y1="'+GY+'" x2="688" y2="'+GY+'" stroke="'+C.dim+'" stroke-width="1.8"/>'
+   +gHatch
+   +'<text x="310" y="'+(GY+21)+'" fill="'+C.axis+'" font-family="Spline Sans Mono,monospace" font-size="9">terrain / impact surface</text>'
+   +'<circle cx="'+RCX+'" cy="'+(GY-WRQ)+'" r="'+WRQ+'" fill="none" stroke="'+C.sled+'" stroke-width="3"/>'
+   +'<circle cx="'+RCX+'" cy="'+(GY-WRQ)+'" r="'+(WRQ-9)+'" fill="none" stroke="'+C.sled+'" stroke-width="1.2" opacity=".4"/>'
+   +'<text x="'+(RCX+WRQ+8)+'" y="'+(GY-WRQ+4)+'" fill="'+C.sled+'" font-family="Spline Sans Mono,monospace" font-size="9">k_t , c_t</text>'
+   +'<rect x="'+(RCX-44)+'" y="'+(lYQ-6)+'" width="88" height="13" rx="3" fill="'+C.dim+'"/>'
+   +'<text x="'+(RCX-44)+'" y="'+(lYQ+22)+'" fill="'+C.dim+'" font-family="Spline Sans Mono,monospace" font-size="9">m_u = '+S.unsprung+' kg</text>'
+   +qcSp+qcDp+lscHsc
+   +'<rect x="'+(RCX-58)+'" y="'+sYQ+'" width="116" height="40" rx="6" fill="#111d2a" stroke="#2c3e54" stroke-width="1.5"/>'
+   +'<text x="'+RCX+'" y="'+(sYQ+15)+'" fill="'+C.ink+'" font-family="Spline Sans Mono,monospace" font-size="10" font-weight="700" text-anchor="middle">m_s  sprung</text>'
+   +'<text x="'+RCX+'" y="'+(sYQ+29)+'" fill="'+C.dim+'" font-family="Spline Sans Mono,monospace" font-size="9" text-anchor="middle">'+ref.ms.toFixed(1)+' kg</text>'
+   +qcMtd
+   +'<g font-family="Spline Sans Mono,monospace" font-size="9.5" fill="'+C.axis+'">'
+   +'<text x="605" y="62">sag: '+(sagFrac*100).toFixed(0)+'% travel</text>'
+   +'<text x="605" y="79" fill="'+(peakFrac>0.95?C.bad:peakFrac>0.78?C.warn:C.axis)+'">peak: '+(peakFrac*100).toFixed(0)+'% travel</text>'
+   +'<text x="605" y="96">f_hop \u2248 '+ref.fHop.toFixed(0)+' Hz</text>'
+   +'<text x="605" y="113">f_body \u2248 '+ref.fu.toFixed(1)+' Hz</text>'
+   +'</g>';
+}
+
+window.addEventListener('resize',()=>recompute());
+recompute();
+
+</script>
+</body>
+</html>
